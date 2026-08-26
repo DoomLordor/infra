@@ -1,0 +1,6 @@
+.env
+secrets/*
+!secrets/.gitkeep
+data/
+base/traefik/certs/*
+!base/traefik/certs/.gitkeep

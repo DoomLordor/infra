@@ -1,0 +1,85 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  postgresql:
+    endpoint: postgres:5432
+    transport: tcp
+    username: otel_monitor
+    password: ${env:POSTGRES_MONITOR_PASSWORD}
+    databases:
+      - ${env:POSTGRES_DB}
+    collection_interval: 15s
+    tls:
+      insecure: true
+
+  redis/0:
+    endpoint: redis-node-0:6379
+    password: ${env:REDIS_PASSWORD}
+    collection_interval: 15s
+  redis/1:
+    endpoint: redis-node-1:6379
+    password: ${env:REDIS_PASSWORD}
+    collection_interval: 15s
+  redis/2:
+    endpoint: redis-node-2:6379
+    password: ${env:REDIS_PASSWORD}
+    collection_interval: 15s
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 768
+    spike_limit_mib: 192
+  batch:
+    send_batch_size: 8192
+    timeout: 5s
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+    sending_queue:
+      enabled: true
+      queue_size: 2048
+    retry_on_failure:
+      enabled: true
+
+service:
+  telemetry:
+    logs:
+      level: INFO
+      encoding: json
+    metrics:
+      level: normal
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+                without_type_suffix: true
+                without_units: true
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger]
+    metrics:
+      receivers:
+        - otlp
+        - postgresql
+        - redis/0
+        - redis/1
+        - redis/2
+      processors: [memory_limiter, batch]
+      exporters: [prometheus]

@@ -1,0 +1,23 @@
+{
+  "realm": "${KEYCLOAK_REALM}",
+  "displayName": "Homelab",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "groups": [
+    { "name": "grafana-viewers" },
+    { "name": "grafana-editors" },
+    { "name": "grafana-admins" },
+    { "name": "harbor-users" },
+    { "name": "harbor-admins" },
+    { "name": "vault-users" },
+    { "name": "vault-admins" },
+    { "name": "observability" }
+  ]
+}
