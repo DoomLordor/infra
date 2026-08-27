@@ -45,6 +45,10 @@ gitlab_rails['redis_ssl'] = false
 registry['enable'] = false
 prometheus_monitoring['enable'] = false
 
+# The container is limited to 8 GiB; automatic worker sizing creates 25 Puma
+# processes on this 32-core host and exhausts that limit.
+puma['worker_processes'] = 2
+
 gitlab_rails['initial_root_password'] = read_secret.call('gitlab_root_password')
 gitlab_rails['display_initial_root_password'] = false
 gitlab_rails['store_initial_root_password'] = false
