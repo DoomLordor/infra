@@ -16,7 +16,10 @@ base/
   redis/
   jaeger/
   otel/
+  loki/
+  alloy/
   prometheus/
+  minio/
 
 apps/
   docker-compose.yaml   Прикладные сервисы
@@ -24,9 +27,11 @@ apps/
   storage-init.sh       Подготовка прикладных хранилищ
   base-ready.sh         Ожидание готовности base
   postgres-init.sh      Роли и базы прикладных сервисов
+  postgres-create-app.sh Создание роли и базы для нового приложения
   vault/
   keycloak/
   gitlab/
+  gitlab-runner/
   harbor/
   grafana/
 
@@ -47,6 +52,9 @@ init-secrets.sh         Генерация секретов и rendered-конф
 - Jaeger
 - OpenTelemetry Collector
 - Prometheus
+- MinIO
+- Loki
+- Grafana Alloy
 
 Base создает Docker-сеть `infra`. Вторая часть подключается к ней как к
 external network, поэтому base необходимо запускать первым.
@@ -56,6 +64,7 @@ external network, поэтому base необходимо запускать п
 - Vault
 - Keycloak
 - GitLab CE
+- GitLab Runner (profile `ci`)
 - Harbor с Trivy
 - Grafana
 - oauth2-proxy
@@ -63,6 +72,19 @@ external network, поэтому base необходимо запускать п
 `apps/postgres-init.sh` идемпотентно создает и обновляет роли и базы Grafana,
 Keycloak, Harbor и GitLab. Base PostgreSQL не требует их секретов при первом
 старте.
+
+## PostgreSQL для нового приложения
+
+После запуска base создайте отдельные роль и базу для приложения:
+
+```bash
+./apps/postgres-create-app.sh my_app
+```
+
+Скрипт идемпотентен: роль и база называются `my_app`, пароль хранится в
+`secrets/my_app_db_password`. При повторном запуске роль и ее пароль
+обновляются, существующая база сохраняется. В Compose подключите этот файл как
+secret и используйте `postgres:5432`, базу `my_app` и пользователя `my_app`.
 
 ## Подготовка
 
@@ -99,28 +121,20 @@ base/traefik/certs/root_ca.crt
 
 ## Запуск
 
-Сначала запустите base:
+После создания `secrets/gitlab_runner_token` запустите оба стека и GitLab Runner:
 
 ```bash
-docker compose --env-file .env -f base/docker-compose.yaml up -d --wait
+./start.sh
 ```
 
-Затем запустите apps:
-
-```bash
-docker compose --env-file .env -f apps/docker-compose.yaml up -d
-```
-
-`base-ready` проверяет PostgreSQL, Redis Standalone, Prometheus, Jaeger и
-Traefik до запуска сервисов apps.
+Скрипт запускает base, затем apps вместе с профилем `ci`. `base-ready` проверяет
+PostgreSQL, Redis Standalone, Loki, Prometheus, Jaeger и Traefik до запуска
+сервисов apps.
 
 ## Остановка
 
-Останавливайте проекты в обратном порядке:
-
 ```bash
-docker compose --env-file .env -f apps/docker-compose.yaml down
-docker compose --env-file .env -f base/docker-compose.yaml down
+./stop.sh
 ```
 
 Не останавливайте base первым: он владеет общей сетью `infra` и предоставляет
@@ -159,6 +173,31 @@ VAULT_TOKEN='...' ./apps/vault/configure-oidc.sh
 ```
 
 Unseal keys и initial root token храните вне этого репозитория.
+
+## GitLab Runner
+
+Runner использует Docker executor, собирает образы через Docker socket и хранит
+cache и конфигурацию под `${DATA_ROOT}/gitlab-runner`. Создайте project или group
+runner в GitLab, отключите для него untagged jobs и назначьте tag `docker`.
+Сохраните выданный authentication token (`glrt-...`) без попадания в shell history:
+
+```bash
+read -rs -p 'GitLab Runner token: ' token
+printf '\n'
+umask 077
+printf '%s\n' "$token" > secrets/gitlab_runner_token
+unset token
+```
+
+После готовности GitLab запустите профиль:
+
+```bash
+docker compose --profile ci --env-file .env -f apps/docker-compose.yaml up -d gitlab-runner
+```
+
+При первом запуске runner автоматически регистрируется в GitLab. Docker daemon
+на хосте runner должен доверять root certificate step-ca, чтобы CI мог публиковать
+образы в `https://harbor.${SERVER_NAME}`.
 
 ## SSO
 
@@ -223,3 +262,14 @@ otel-grpc.${SERVER_NAME}:443
 
 Все persistent data хранятся как bind mounts под `${DATA_ROOT}`. Named volumes,
 статические Docker IP и custom IPAM не используются.
+
+Loki хранит логи в bucket `loki` на MinIO. Срок хранения задается
+`LOKI_RETENTION_PERIOD` и по умолчанию составляет 30 дней. MinIO не опубликован
+в LAN: Grafana обращается к Loki по внутренней Docker-сети.
+
+## Логи контейнеров
+
+Grafana Alloy автоматически собирает stdout/stderr Docker-контейнеров проектов
+`infra-base` и `infra-apps` и отправляет их в Loki. В Grafana используйте
+datasource `Loki` и фильтруйте по labels `compose_project`, `service` и
+`container`. Alloy не собирает собственные логи, чтобы исключить цикл записи.

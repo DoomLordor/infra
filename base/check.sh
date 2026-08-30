@@ -21,6 +21,7 @@ check_one_shot() {
 "${compose[@]}" config --quiet
 check_one_shot storage-init
 check_one_shot redis-cluster-init
+check_one_shot minio-init
 "${compose[@]}" exec -T postgres pg_isready \
   -U "${POSTGRES_USER:-app}" -d "${POSTGRES_DB:-app}"
 "${compose[@]}" exec -T clickhouse clickhouse-client --query 'SELECT version()'
@@ -33,6 +34,9 @@ check_one_shot redis-cluster-init
 "${compose[@]}" exec -T kafka /opt/kafka/bin/kafka-broker-api-versions.sh \
   --bootstrap-server 127.0.0.1:9092 >/dev/null
 "${compose[@]}" exec -T nats wget -q --spider http://127.0.0.1:8222/healthz
+"${compose[@]}" exec -T minio curl --fail http://127.0.0.1:9000/minio/health/live
+"${compose[@]}" exec -T loki wget -q --spider http://127.0.0.1:3100/ready
+"${compose[@]}" exec -T prometheus wget -q --spider http://alloy:12345/metrics
 "${compose[@]}" exec -T jaeger wget -q --spider http://127.0.0.1:13133/status
 "${compose[@]}" exec -T prometheus wget -q --spider http://127.0.0.1:9090/-/ready
 "${compose[@]}" exec -T prometheus wget -q --spider http://otel-collector:8888/metrics

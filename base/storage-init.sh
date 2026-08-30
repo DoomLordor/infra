@@ -12,7 +12,10 @@ mkdir -p \
   /data/kafka \
   /data/prometheus \
   /data/traefik \
-  /data/jaeger
+  /data/jaeger \
+  /data/minio \
+  /data/loki \
+  /data/alloy
 
 chown 1000:1000 /data/kafka
 chmod 0750 /data/kafka
@@ -31,3 +34,12 @@ chmod 0750 /data/redis-standalone
 
 chown 10001:0 /data/jaeger
 chmod 0750 /data/jaeger
+
+chown 0:0 /data/minio
+chmod 0750 /data/minio
+
+chown 10001:0 /data/loki
+chmod 0750 /data/loki
+
+chown 0:0 /data/alloy
+chmod 0750 /data/alloy

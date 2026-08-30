@@ -20,6 +20,7 @@ services:
       - ${DATA_ROOT}/vault:/data/vault
       - ${DATA_ROOT}/harbor:/data/harbor
       - ${DATA_ROOT}/gitlab:/data/gitlab
+      - ${DATA_ROOT}/gitlab-runner:/data/gitlab-runner
     logging: *default-logging
 
   base-ready:
@@ -208,6 +209,32 @@ services:
     shm_size: 256mb
     mem_limit: ${GITLAB_MEMORY_LIMIT}
     stop_grace_period: 120s
+    logging: *default-logging
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v18.1.0
+    profiles: [ci]
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/usr/local/bin/gitlab-runner-entrypoint.sh"]
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+      gitlab:
+        condition: service_healthy
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+      RUNNER_CACHE_HOST_PATH: ${DATA_ROOT}/gitlab-runner/cache
+    secrets:
+      - gitlab_runner_token
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DATA_ROOT}/gitlab-runner/config:/etc/gitlab-runner
+      - ${DATA_ROOT}/gitlab-runner/cache:/cache
+      - ../base/traefik/certs/root_ca.crt:/etc/gitlab-runner/certs/gitlab.${SERVER_NAME}.crt:ro
+      - ./gitlab-runner/entrypoint.sh:/usr/local/bin/gitlab-runner-entrypoint.sh:ro
+    networks: [infra]
+    mem_limit: ${GITLAB_RUNNER_MEMORY_LIMIT:-1g}
+    stop_grace_period: 30s
     logging: *default-logging
 
   harbor-registry:
@@ -656,6 +683,8 @@ secrets:
     file: ../secrets/vault_oidc_client_secret
   oauth2_proxy_client_secret:
     file: ../secrets/oauth2_proxy_client_secret
+  gitlab_runner_token:
+    file: ../secrets/gitlab_runner_token
   oauth2_proxy_cookie_secret:
     file: ../secrets/oauth2_proxy_cookie_secret
 

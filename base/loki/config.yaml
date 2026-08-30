@@ -1,0 +1,43 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: "2025-01-01"
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/index_cache
+  aws:
+    endpoint: minio:9000
+    region: us-east-1
+    bucketnames: loki
+    access_key_id: ${LOKI_S3_ACCESS_KEY}
+    secret_access_key: ${LOKI_S3_SECRET_ACCESS_KEY}
+    insecure: true
+    s3forcepathstyle: true
+
+limits_config:
+  max_query_lookback: ${LOKI_RETENTION_PERIOD}
+  retention_period: ${LOKI_RETENTION_PERIOD}
+
+compactor:
+  working_directory: /loki/compactor
+  delete_request_store: s3
+  retention_enabled: true

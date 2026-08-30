@@ -26,6 +26,9 @@ services:
       - ${DATA_ROOT}/prometheus:/data/prometheus
       - ${DATA_ROOT}/traefik:/data/traefik
       - ${DATA_ROOT}/jaeger:/data/jaeger
+      - ${DATA_ROOT}/minio:/data/minio
+      - ${DATA_ROOT}/loki:/data/loki
+      - ${DATA_ROOT}/alloy:/data/alloy
     logging: *default-logging
 
   traefik:
@@ -68,7 +71,7 @@ services:
     networks:
       infra:
         # OIDC clients use Keycloak's external issuer without hairpinning through the LAN IP.
-        aliases: ["keycloak.${SERVER_NAME}"]
+        aliases: ["keycloak.${SERVER_NAME}", "gitlab.${SERVER_NAME}"]
     depends_on:
       storage-init:
         condition: service_completed_successfully
@@ -318,6 +321,92 @@ services:
     stop_grace_period: 30s
     logging: *default-logging
 
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    depends_on:
+      storage-init: {condition: service_completed_successfully}
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_root_user
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_password
+    secrets:
+      - minio_root_user
+      - minio_root_password
+    volumes:
+      - ${DATA_ROOT}/minio:/data
+    networks: [infra]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: ${MINIO_MEMORY_LIMIT:-512m}
+    stop_grace_period: 60s
+    logging: *default-logging
+
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-03-12T17-29-24Z
+    restart: "no"
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: ["/bin/sh", "/usr/local/bin/minio-init.sh"]
+    secrets:
+      - minio_root_user
+      - minio_root_password
+      - loki_s3_secret_key
+    volumes:
+      - ./minio/init.sh:/usr/local/bin/minio-init.sh:ro
+    networks: [infra]
+    logging: *default-logging
+
+  loki:
+    image: grafana/loki:3.5.8
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/config.yaml", "-config.expand-env=true"]
+    depends_on:
+      minio-init: {condition: service_completed_successfully}
+    env_file:
+      - ../secrets/loki.env
+    environment:
+      LOKI_RETENTION_PERIOD: ${LOKI_RETENTION_PERIOD:-30d}
+    volumes:
+      - ${DATA_ROOT}/loki:/loki
+      - ./loki/config.yaml:/etc/loki/config.yaml:ro
+    networks: [infra]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    mem_limit: ${LOKI_MEMORY_LIMIT:-1g}
+    stop_grace_period: 60s
+    logging: *default-logging
+
+  alloy:
+    image: grafana/alloy:v1.8.3
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    depends_on:
+      loki: {condition: service_healthy}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DATA_ROOT}/alloy:/var/lib/alloy
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+    networks: [infra]
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: ${ALLOY_MEMORY_LIMIT:-512m}
+    stop_grace_period: 30s
+    logging: *default-logging
+
   jaeger:
     image: jaegertracing/jaeger:2.20.0
     restart: unless-stopped
@@ -441,6 +530,12 @@ secrets:
     file: ../secrets/clickhouse_admin_password
   clickhouse_app_password:
     file: ../secrets/clickhouse_app_password
+  minio_root_user:
+    file: ../secrets/minio_root_user
+  minio_root_password:
+    file: ../secrets/minio_root_password
+  loki_s3_secret_key:
+    file: ../secrets/loki_s3_secret_key
 
 networks:
   infra:

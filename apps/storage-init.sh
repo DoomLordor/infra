@@ -14,7 +14,10 @@ mkdir -p \
   /data/gitlab/config \
   /data/gitlab/config/trusted-certs \
   /data/gitlab/logs \
-  /data/gitlab/data
+  /data/gitlab/data \
+  /data/gitlab-runner \
+  /data/gitlab-runner/config \
+  /data/gitlab-runner/cache
 
 chown 472:0 /data/grafana
 chmod 0750 /data/grafana
@@ -39,6 +42,9 @@ chmod 0750 \
 
 chown 0:0 /data/gitlab /data/gitlab/config /data/gitlab/logs /data/gitlab/data
 chmod 0750 /data/gitlab /data/gitlab/config /data/gitlab/logs /data/gitlab/data
+
+chown 999:999 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
+chmod 0750 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
 
 # GitLab Omnibus updates certificate permissions during reconfigure, so its
 # trusted-certs directory must be writable rather than a read-only bind mount.

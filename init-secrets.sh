@@ -78,6 +78,9 @@ do
 done
 
 write_hex_secret_if_missing "$secrets_dir/harbor_db_password" 64
+write_hex_secret_if_missing "$secrets_dir/minio_root_user" 32
+write_hex_secret_if_missing "$secrets_dir/minio_root_password" 64
+write_hex_secret_if_missing "$secrets_dir/loki_s3_secret_key" 64
 write_hex_secret_if_missing "$secrets_dir/harbor_admin_password" 32
 write_hex_secret_if_missing "$secrets_dir/harbor_core_secret" 16
 write_hex_secret_if_missing "$secrets_dir/harbor_jobservice_secret" 16
@@ -295,6 +298,9 @@ chmod 644 \
   "$secrets_dir/harbor-jobservice-config.yml" \
   "$secrets_dir/harbor-registry-config.yml"
 chmod 600 \
+  "$secrets_dir/minio_root_user" \
+  "$secrets_dir/minio_root_password" \
+  "$secrets_dir/loki_s3_secret_key" \
   "$secrets_dir/harbor-core.env" \
   "$secrets_dir/harbor-jobservice.env" \
   "$secrets_dir/harbor-registryctl.env" \
@@ -307,6 +313,12 @@ chmod 600 \
   printf 'REDIS_PASSWORD=%s\n' "$(tr -d '\n' < "$secrets_dir/redis_password")"
 } > "$secrets_dir/otel.env"
 chmod 600 "$secrets_dir/otel.env"
+
+{
+  printf 'LOKI_S3_ACCESS_KEY=loki\n'
+  printf 'LOKI_S3_SECRET_ACCESS_KEY=%s\n' "$(tr -d '\n' < "$secrets_dir/loki_s3_secret_key")"
+} > "$secrets_dir/loki.env"
+chmod 600 "$secrets_dir/loki.env"
 
 cat <<EOF2
 Secrets initialized.

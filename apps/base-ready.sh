@@ -40,6 +40,7 @@ http_ready() {
 
 wait_for PostgreSQL pg_isready -h postgres -p 5432 -U "${POSTGRES_USER}"
 wait_for Redis tcp_ready redis-standalone 6379
+wait_for Loki http_ready loki 3100 /ready
 wait_for Prometheus http_ready prometheus 9090 /-/ready
 wait_for Jaeger http_ready jaeger 13133 /status
 wait_for Traefik http_ready traefik 8080 /ping
