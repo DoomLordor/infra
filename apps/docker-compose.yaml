@@ -21,6 +21,7 @@ services:
       - ${DATA_ROOT}/harbor:/data/harbor
       - ${DATA_ROOT}/gitlab:/data/gitlab
       - ${DATA_ROOT}/gitlab-runner:/data/gitlab-runner
+      - ${DATA_ROOT}/step-ca:/data/step-ca
     logging: *default-logging
 
   base-ready:
@@ -75,7 +76,7 @@ services:
       - ./vault/vault.hcl:/vault/config/vault.hcl:ro
       - ./vault/policies:/vault/policies:ro
       - ./vault/oidc-bootstrap.sh:/usr/local/bin/vault-oidc-configure.sh:ro
-      - ../base/traefik/certs:/etc/step-ca:ro
+      - ${DATA_ROOT}/step-ca:/etc/step-ca:ro
     networks: [infra]
     labels:
       - traefik.enable=true
@@ -231,7 +232,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DATA_ROOT}/gitlab-runner/config:/etc/gitlab-runner
       - ${DATA_ROOT}/gitlab-runner/cache:/cache
-      - ../base/traefik/certs/root_ca.crt:/etc/gitlab-runner/certs/gitlab.${SERVER_NAME}.crt:ro
+      - ${DATA_ROOT}/step-ca/root_ca.crt:/etc/gitlab-runner/certs/gitlab.${SERVER_NAME}.crt:ro
       - ./gitlab-runner/entrypoint.sh:/usr/local/bin/gitlab-runner-entrypoint.sh:ro
     networks: [infra]
     mem_limit: ${GITLAB_RUNNER_MEMORY_LIMIT:-1g}
@@ -332,7 +333,7 @@ services:
       - ./harbor/core/app.conf:/etc/core/app.conf:ro
       - ../secrets/harbor_core_private_key.pem:/etc/core/private_key.pem:ro
       - ../secrets/harbor_secret_key:/etc/core/key:ro
-      - ../base/traefik/certs:/etc/step-ca:ro
+      - ${DATA_ROOT}/step-ca:/etc/step-ca:ro
     networks: [infra]
     labels:
       - traefik.enable=true
@@ -551,7 +552,7 @@ services:
       - oauth2_proxy_client_secret
       - oauth2_proxy_cookie_secret
     volumes:
-      - ../base/traefik/certs:/etc/step-ca:ro
+      - ${DATA_ROOT}/step-ca:/etc/step-ca:ro
     networks: [infra]
     labels:
       - traefik.enable=true
@@ -630,7 +631,7 @@ services:
     volumes:
       - ${DATA_ROOT}/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ../base/traefik/certs:/etc/step-ca:ro
+      - ${DATA_ROOT}/step-ca:/etc/step-ca:ro
     networks: [infra]
     labels:
       - traefik.enable=true

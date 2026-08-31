@@ -110,6 +110,9 @@ STEP_CA_EMAIL=infra@home.example
 base/traefik/certs/root_ca.crt
 ```
 
+`storage-init` копирует сертификат в `${DATA_ROOT}/step-ca` с mode `0644` для
+сервисов, которые запускаются не от root.
+
 Сгенерируйте секреты и конфиги с credentials:
 
 ```bash

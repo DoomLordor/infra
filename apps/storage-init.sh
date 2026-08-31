@@ -10,6 +10,7 @@ mkdir -p \
   /data/harbor/ca-download \
   /data/harbor/trivy \
   /data/harbor/trivy/reports \
+  /data/step-ca \
   /data/gitlab \
   /data/gitlab/config \
   /data/gitlab/config/trusted-certs \
@@ -40,14 +41,22 @@ chmod 0750 \
   /data/harbor/trivy \
   /data/harbor/trivy/reports
 
+chown 0:0 /data/step-ca
+chmod 0755 /data/step-ca
+cp /etc/step-ca/root_ca.crt /data/step-ca/root_ca.crt
+chown 0:0 /data/step-ca/root_ca.crt
+chmod 0644 /data/step-ca/root_ca.crt
+
 chown 0:0 /data/gitlab /data/gitlab/config /data/gitlab/logs /data/gitlab/data
-chmod 0750 /data/gitlab /data/gitlab/config /data/gitlab/logs /data/gitlab/data
+chmod 0750 /data/gitlab /data/gitlab/config /data/gitlab/logs
+# Puma runs as git and must traverse the /var/opt/gitlab bind-mount root.
+chmod 0755 /data/gitlab/data
 
 chown 999:999 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
 chmod 0750 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
 
 # GitLab Omnibus updates certificate permissions during reconfigure, so its
 # trusted-certs directory must be writable rather than a read-only bind mount.
-cp /etc/step-ca/root_ca.crt /data/gitlab/config/trusted-certs/root_ca.crt
+cp /data/step-ca/root_ca.crt /data/gitlab/config/trusted-certs/root_ca.crt
 chown 0:0 /data/gitlab/config/trusted-certs/root_ca.crt
 chmod 0644 /data/gitlab/config/trusted-certs/root_ca.crt

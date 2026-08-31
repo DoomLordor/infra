@@ -26,6 +26,9 @@ prometheus.${SERVER_NAME}
 base/traefik/certs/root_ca.crt
 ```
 
+`storage-init` создаёт доступную не-root сервисам копию сертификата в
+`${DATA_ROOT}/step-ca` с mode `0644`.
+
 Создайте `.env` и сгенерируйте секреты:
 
 ```bash
