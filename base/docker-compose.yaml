@@ -427,7 +427,6 @@ services:
       - traefik.http.routers.jaeger.tls=true
       - traefik.http.routers.jaeger.tls.certresolver=stepca
       - traefik.http.routers.jaeger.service=jaeger
-      - traefik.http.routers.jaeger.middlewares=infra-sso-errors@docker,infra-sso@docker
       - traefik.http.services.jaeger.loadbalancer.server.port=16686
       - traefik.http.services.jaeger.loadbalancer.healthcheck.path=/status
       - traefik.http.services.jaeger.loadbalancer.healthcheck.port=13133

@@ -2,7 +2,8 @@
 
 Keycloak используется как единый провайдер идентификации для браузерного
 доступа. Сервисы с поддержкой OIDC подключаются к Keycloak напрямую. Для
-Jaeger и Prometheus используется `oauth2-proxy` через Traefik ForwardAuth.
+Prometheus используется `oauth2-proxy` через Traefik ForwardAuth. Jaeger
+доступен без SSO.
 
 ## Предварительные условия
 
@@ -73,7 +74,7 @@ Bootstrap управляет следующими confidential clients:
 | `/harbor-admins` | Системный администратор Harbor |
 | `/vault-users` | Вход в Vault с политикой `default` |
 | `/vault-admins` | Вход в Vault с политикой `vault-admin` |
-| `/observability` | Доступ к Jaeger и Prometheus |
+| `/observability` | Доступ к Prometheus |
 
 GitLab CE принимает пользователей из realm и создает учетную запись при
 первом входе. GitLab CE не умеет назначать административные и проектные роли
@@ -90,7 +91,8 @@ GitLab CE принимает пользователей из realm и созда
   администраторы Harbor. Локальный `admin` остается аварийной учетной записью.
 - Docker и Helm используют CLI secret из профиля пользователя Harbor после
   первого входа через браузер.
-- Jaeger и Prometheus доступны только участникам `/observability`.
+- Jaeger доступен без SSO.
+- Prometheus доступен только участникам `/observability`.
 - Vault сохраняет вход по токенам. OIDC включается отдельно после init/unseal.
 
 Harbor можно переключить с database authentication на OIDC, только если в нем
@@ -137,6 +139,7 @@ docker compose --env-file .env -f apps/docker-compose.yaml ps
 ./apps/check.sh
 ```
 
-Неавторизованный запрос к Jaeger или Prometheus должен пройти через
-`oauth.${SERVER_NAME}` и перенаправиться в Keycloak. Пользователь без группы
-`/observability` не получает доступ к backend-сервису.
+Jaeger должен отвечать без перенаправления в Keycloak. Неавторизованный запрос
+к Prometheus должен пройти через `oauth.${SERVER_NAME}` и перенаправиться в
+Keycloak. Пользователь без группы `/observability` не получает доступ к
+Prometheus.

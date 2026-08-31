@@ -40,9 +40,9 @@ check_one_shot harbor-oidc-init
 test -s "$root_dir/base/traefik/certs/root_ca.crt"
 curl --cacert "$root_dir/base/traefik/certs/root_ca.crt" -fsS \
   "https://harbor.${SERVER_NAME}/api/v2.0/health" >/dev/null
-for host in jaeger prometheus; do
-  test "$(curl --cacert "$root_dir/base/traefik/certs/root_ca.crt" \
-    -sS -o /dev/null -w '%{http_code}' "https://${host}.${SERVER_NAME}/")" -eq 302
-done
+test "$(curl --cacert "$root_dir/base/traefik/certs/root_ca.crt" \
+  -sS -o /dev/null -w '%{http_code}' "https://jaeger.${SERVER_NAME}/")" -eq 200
+test "$(curl --cacert "$root_dir/base/traefik/certs/root_ca.crt" \
+  -sS -o /dev/null -w '%{http_code}' "https://prometheus.${SERVER_NAME}/")" -eq 302
 
 printf 'Apps stack is healthy.\n'
