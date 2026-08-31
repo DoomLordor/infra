@@ -127,9 +127,10 @@ base/traefik/certs/root_ca.crt
 ./start.sh
 ```
 
-Скрипт запускает base, затем apps. Если существует `secrets/gitlab_runner_token`,
-он также запускает GitLab Runner. `base-ready` проверяет PostgreSQL, Redis
-Standalone, Loki, Prometheus, Jaeger и Traefik до запуска сервисов apps.
+Скрипт запускает base, затем apps и после готовности GitLab применяет его
+настройки безопасности. Если существует `secrets/gitlab_runner_token`, он также
+запускает GitLab Runner. `base-ready` проверяет PostgreSQL, Redis Standalone,
+Loki, Prometheus, Jaeger и Traefik до запуска сервисов apps.
 
 ## Остановка
 

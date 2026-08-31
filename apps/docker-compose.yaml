@@ -189,6 +189,7 @@ services:
       - ${DATA_ROOT}/gitlab/logs:/var/log/gitlab
       - ${DATA_ROOT}/gitlab/data:/var/opt/gitlab
       - ./gitlab/gitlab.rb:/etc/gitlab/gitlab.rb:ro
+      - ./gitlab/security-settings.rb:/usr/local/lib/gitlab/security-settings.rb:ro
     ports:
       - "${LAN_BIND_IP}:${GITLAB_SSH_PORT}:22"
     networks: [infra]

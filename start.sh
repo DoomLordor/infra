@@ -7,7 +7,8 @@ apps=(docker compose --env-file "$root_dir/.env" -f "$root_dir/apps/docker-compo
 ci_apps=(docker compose --profile ci --env-file "$root_dir/.env" -f "$root_dir/apps/docker-compose.yaml")
 
 "${base[@]}" up -d --wait
-"${apps[@]}" up -d
+"${apps[@]}" up -d --wait
+"${apps[@]}" exec -T gitlab gitlab-rails runner /usr/local/lib/gitlab/security-settings.rb
 
 if [[ -s "$root_dir/secrets/gitlab_runner_token" ]]; then
   "${ci_apps[@]}" up -d gitlab-runner
