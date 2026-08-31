@@ -48,9 +48,9 @@ chown 0:0 /data/step-ca/root_ca.crt
 chmod 0644 /data/step-ca/root_ca.crt
 
 chown 0:0 /data/gitlab /data/gitlab/config /data/gitlab/logs /data/gitlab/data
-chmod 0750 /data/gitlab /data/gitlab/config /data/gitlab/logs
-# Puma runs as git and must traverse the /var/opt/gitlab bind-mount root.
-chmod 0755 /data/gitlab/data
+chmod 0750 /data/gitlab /data/gitlab/config
+# Puma runs as git and must traverse the data and logs bind-mount roots.
+chmod 0755 /data/gitlab/logs /data/gitlab/data
 
 chown 999:999 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
 chmod 0750 /data/gitlab-runner /data/gitlab-runner/config /data/gitlab-runner/cache
